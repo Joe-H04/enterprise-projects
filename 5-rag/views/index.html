@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Handbook Assistant</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">
+      <div class="logo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
+      </div>
+      Handbook Assistant
+    </div>
+    <span class="tag">RAG demo · Brightwave Inc.</span>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Ask the employee handbook</h2>
+      <p class="hint">Your question is matched against the handbook, then Gemini answers using only the best passages.</p>
+      <form id="form" class="ask">
+        <input id="question" name="question" maxlength="500" autocomplete="off"
+               placeholder="e.g. How many vacation days do I get?" required>
+        <button class="btn" id="submit" type="submit">Ask</button>
+      </form>
+      <div class="chips" id="examples"></div>
+    </section>
+
+    <section class="card" id="answerCard" hidden>
+      <div class="step-label">Step 2 · Generation</div>
+      <h2>Answer</h2>
+      <p class="hint">Written by Gemini from the passages below. Numbers like <span class="cite">1</span> point to the passage used.</p>
+      <div id="answer" class="answer"></div>
+    </section>
+
+    <section class="card" id="sourcesCard" hidden>
+      <div class="step-label">Step 1 · Retrieval</div>
+      <h2>Passages found</h2>
+      <p class="hint">The handbook chunks whose embeddings are closest to your question (cosine similarity, 1 = same meaning).</p>
+      <ol id="sources" class="sources"></ol>
+    </section>
+  </main>
+
+  <script>
+    const examples = [
+      'How many vacation days do I get?',
+      'Can I work from Spain for a month?',
+      'What is the meal limit on a business trip abroad?',
+      "When do I need to tell my boss I'm ill?",
+      'Is there a gym membership benefit?', // not in the handbook: Gemini should say so
+    ];
+    const $ = (id) => document.getElementById(id);
+    const el = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    };
+
+    for (const q of examples) {
+      const chip = el('button', 'chip', q);
+      chip.type = 'button';
+      chip.onclick = () => { $('question').value = q; ask(q); };
+      $('examples').append(chip);
+    }
+
+    $('form').onsubmit = (e) => { e.preventDefault(); ask($('question').value.trim()); };
+
+    // Turns "27 days [1]." into text nodes + small citation badges (no innerHTML, so no HTML injection).
+    function renderAnswer(text) {
+      const box = $('answer');
+      box.replaceChildren();
+      for (const part of text.split(/(\[\d+\])/)) {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) {
+          const badge = el('a', 'cite', m[1]);
+          badge.href = `#source-${m[1]}`;
+          box.append(badge);
+        } else {
+          box.append(document.createTextNode(part));
+        }
+      }
+    }
+
+    function renderSources(sources) {
+      const list = $('sources');
+      list.replaceChildren();
+      sources.forEach((s, i) => {
+        const li = el('li', 'source');
+        li.id = `source-${i + 1}`;
+        const head = el('div', 'source-head');
+        head.append(el('span', 'num', i + 1), el('b', null, `${s.title} › ${s.heading}`));
+        const score = el('span', 'score', s.score.toFixed(3));
+        score.style.setProperty('--w', `${Math.max(0, s.score) * 100}%`);
+        head.append(score);
+        li.append(head, el('p', null, s.text), el('span', 'file', s.source));
+        list.append(li);
+      });
+    }
+
+    async function ask(question) {
+      if (!question) return;
+      $('submit').disabled = true;
+      $('submit').textContent = 'Thinking…';
+      $('answerCard').hidden = false;
+      $('answer').replaceChildren(el('div', 'skeleton'), el('div', 'skeleton short'));
+      $('sourcesCard').hidden = true;
+
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        renderAnswer(data.answer);
+        renderSources(data.sources);
+        $('sourcesCard').hidden = false;
+      } catch (err) {
+        $('answer').replaceChildren(el('div', 'notice', err.message));
+      } finally {
+        $('submit').disabled = false;
+        $('submit').textContent = 'Ask';
+      }
+    }
+  </script>
+</body>
+</html>

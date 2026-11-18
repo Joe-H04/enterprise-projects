@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acme Portal · Sign-in failed</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="center">
+    <div class="hero">
+      <div class="icon-circle">!</div>
+      <h1>Sign-in failed</h1>
+      <p class="sub">Google did not complete the login. Here is the reason it gave:</p>
+      <p class="reason" id="reason">Unknown error</p>
+      <a class="btn" href="/">Try again</a>
+    </div>
+  </main>
+  <script>
+    const reason = new URLSearchParams(location.search).get('reason');
+    if (reason) document.getElementById('reason').textContent = reason;
+  </script>
+</body>
+</html>

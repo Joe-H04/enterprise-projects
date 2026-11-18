@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acme Portal · Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="brand"><div class="logo">A</div> Acme Portal</div>
+    <div class="nav-user">
+      <img id="navAvatar" class="avatar sm" alt="" referrerpolicy="no-referrer">
+      <span id="navName"></span>
+      <a class="btn light" href="/logout">Log out</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card profile">
+      <img id="avatar" class="avatar" alt="" referrerpolicy="no-referrer">
+      <div>
+        <h1 id="name">Loading…</h1>
+        <p id="email"></p>
+        <span class="badge">✓ Verified by Google</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>What just happened</h2>
+      <p class="hint">The OpenID Connect authorization-code flow, step by step.</p>
+      <div class="steps">
+        <div class="step"><b>1 · Redirect</b>The app sent you to Google with a random state.</div>
+        <div class="step"><b>2 · Sign in</b>You signed in on Google. We never saw your password.</div>
+        <div class="step"><b>3 · Exchange</b>Our server traded the one-time code for tokens.</div>
+        <div class="step"><b>4 · Verify</b>We checked the ID token’s signature, issuer, audience and expiry.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Your verified ID token</h2>
+      <p class="hint">The claims Google signed about you. The app uses <code>sub</code> as your user ID.</p>
+      <table class="claims"><tbody id="claims"></tbody></table>
+      <details>
+        <summary>Show raw JSON</summary>
+        <pre id="raw"></pre>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    const NOTES = {
+      iss: 'Issuer: who created the token',
+      sub: 'Subject: your stable Google user ID (store this, not the email)',
+      aud: 'Audience: must equal our client ID',
+      azp: 'Authorized party: the client that asked for the token',
+      email: 'Your email address',
+      email_verified: 'Google has verified this email',
+      name: 'Display name',
+      picture: 'Profile photo URL',
+      given_name: 'First name',
+      family_name: 'Last name',
+      hd: 'Google Workspace domain',
+      at_hash: 'Hash of the access token, links the two tokens',
+      iat: 'Issued at',
+      exp: 'Expires at',
+    };
+    const DATES = ['iat', 'exp', 'auth_time'];
+
+    fetch('/api/me')
+      .then((r) => {
+        if (r.status === 401) { location.href = '/'; throw new Error('not logged in'); }
+        return r.json();
+      })
+      .then(({ user, claims }) => {
+        document.getElementById('name').textContent = user.name;
+        document.getElementById('navName').textContent = user.name;
+        document.getElementById('email').textContent = user.email;
+        if (user.picture?.startsWith('https://')) {
+          document.getElementById('avatar').src = user.picture;
+          document.getElementById('navAvatar').src = user.picture;
+        }
+
+        const tbody = document.getElementById('claims');
+        for (const [key, value] of Object.entries(claims)) {
+          const tr = document.createElement('tr');
+          const k = document.createElement('td');
+          const v = document.createElement('td');
+          k.textContent = key;
+          v.textContent = DATES.includes(key) ? new Date(value * 1000).toLocaleString() : String(value);
+          if (NOTES[key]) {
+            const note = document.createElement('span');
+            note.className = 'note';
+            note.textContent = NOTES[key];
+            v.appendChild(note);
+          }
+          tr.append(k, v);
+          tbody.appendChild(tr);
+        }
+        document.getElementById('raw').textContent = JSON.stringify(claims, null, 2);
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>

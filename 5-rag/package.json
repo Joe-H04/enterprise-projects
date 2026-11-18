@@ -1,0 +1,20 @@
+{
+  "name": "brightwave-handbook-rag",
+  "version": "1.0.0",
+  "description": "Demo: a simple RAG app (Gemini embeddings + cosine search + Gemini answers, free tier) over a fictional employee handbook",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "ingest": "node --env-file=.env ingest.js",
+    "search": "node --env-file=.env ask.js --search",
+    "ask": "node --env-file=.env ask.js",
+    "start": "node --env-file=.env server.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "@google/genai": "^3.6.0",
+    "express": "^5.3.0"
+  }
+}

@@ -1,0 +1,9 @@
+# Not part of this repository
+/1-sso-presentation/
+/3-google-resource/
+
+# Dependencies, secrets and generated files
+node_modules/
+.env
+index.json
+.DS_Store

@@ -1,0 +1,19 @@
+{
+  "name": "brightwave-helpdesk-mcp",
+  "version": "1.0.0",
+  "description": "Demo: a simple MCP server (tools, a resource and a prompt) for a fictional IT helpdesk",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "client": "node client.js",
+    "inspect": "npx @modelcontextprotocol/inspector node server.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.3.2"
+  }
+}
